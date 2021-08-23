@@ -1,6 +1,4 @@
 #include "xml_tree.h"
-#include <unordered_set>
-#include <vector>
 int main()
 {
   Company empTreeFromXml;
