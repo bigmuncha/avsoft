@@ -50,11 +50,13 @@ private:
   //emps
   void addEmployee(const std::string&,EmployeeSP);
   void removeEmployee(const std::string&, EmployeeSP);
-
+  void changeEmployee(const std::string&, EmployeeSP, EmployeeSP);
+  
   typedef std::function<void()>  URFunc;
   std::vector<DepartmentBase> m_departments;
   std::stack<URFunc> m_undoStack;
   std::stack<URFunc>  m_redoStack;
+  bool m_redoFlag;
 };
   
 

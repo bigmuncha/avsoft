@@ -20,7 +20,8 @@ void EmpTree::GetDataFromSrc(const std::string &)
 Company::Company()
   :  m_departments(std::vector<DepartmentBase>{}),
      m_undoStack(std::stack<std::function<void()>>{}),
-     m_redoStack(std::stack<std::function<void()>>{})
+     m_redoStack(std::stack<std::function<void()>>{}),
+     m_redoFlag(false)
 {}
 
 void Company::PrintTree()
@@ -139,11 +140,18 @@ void Company::removeEmployee(const std::string & dep_name, EmployeeSP emp)
   temp->removeEmployee(emp);
 }
 
+void Company::changeEmployee(const std::string& dep_name, EmployeeSP pre, EmployeeSP to)
+{
+  std::cout <<"Try change emp\n";
+  auto temp = findDepartment(dep_name);
+  temp->changeEmployee(pre,to);
+}
+
 void Company::MakeChange()
 {
   std::cout << "What you wanna do?(take num):\n" 
 	    << "1: Add Department " <<"2: Remove department " << "3: Change department name\n"
-	    << "4: Add Employee " << "5: Remove Employee" << "6: Change Employee property\n" ;
+	    << "4: Add Employee " << "5: Remove Employee " << "6: Change Employee property\n" ;
   int num;
   std::cin >> num;
 
@@ -156,6 +164,8 @@ void Company::MakeChange()
       addDepartment(depName);
       m_undoStack.push([this,depName]
 		       (){removeDepartment(depName);});
+      m_redoStack.push([this,depName]
+		       (){addDepartment(depName);});
       std::cout <<'\n';
     }
     break;
@@ -168,36 +178,41 @@ void Company::MakeChange()
       removeDepartment(depName);
       m_undoStack.push([this,depName]
 		       (){addDepartment(depName);});
+      m_redoStack.push([this,depName]
+		       (){removeDepartment(depName);});
+	    
       std::cout <<'\n';
     }
     break;
     
   case 3:
     {    //Changedepartmentname
-      std::string depName;
+      std::string depName,newName;;
       std::cout <<"current name: ";
       std::cin >> depName;
       std::cout <<"change to: ";
-      std::string newName;
       std::cin >> newName;
       changeDepartmentName(depName, newName);
     
       m_undoStack.push([this,depName,newName]
 		       (){changeDepartmentName(newName, depName);});
+      m_redoStack.push([this,depName,newName]
+		       (){changeDepartmentName(depName, newName);});
       std::cout <<'\n';
     }
     break;
     
   case 4:
     {    //Addemployee
-      std::string depName;
+      std::string depName,fio,function;
+      std::string name,midName,fam;
+      unsigned int salary;
       std::cout << "choose dep: ";
       std::cin >> depName;
-      std::cout << "fill emp info: ";
-      std::cout <<"FIO function salary \n";
-      std::string fio,function;
-      unsigned int salary;
-      std::cin >> fio >> function >> salary;
+      std::cout << "fill emp info: "
+		<<"FIO function salary \n";
+      std::cin >> fam >> name >> midName >> function >> salary;
+      fio = fam + " " + name + " " + midName;
       std::shared_ptr<Employee> emp(new Employee);
       emp->name = fio;
       emp->function = function;
@@ -205,19 +220,22 @@ void Company::MakeChange()
       addEmployee(depName, emp);
       m_undoStack.push([this,depName,emp]
 		       (){removeEmployee(depName, emp);});
+      m_redoStack.push([this,depName,emp]
+		       (){addEmployee(depName, emp);});
       std::cout <<'\n';
     }
     break;
     
   case 5:
     {    //Removeemployee
-      std::string depName;
+      std::string depName, fio;
+      std::string fam, name,midName;
       std::cout << "choose dep: ";
       std::cin >> depName;
-      std::cout << "fill emp info: ";
-      std::cout <<"FIO function salary \n";
-      std::string fio;
-      std::cin >> fio;
+      std::cout << "fill emp info: "
+		<<"FIO \n";
+      std::cin >> fam >> name >> midName;
+      fio = fam + " " + name + " " + midName;
       auto dep = findDepartment(depName);
       auto empList = dep->getEmpList();
       auto temp = std::find_if(std::begin(empList),std::end(empList),
@@ -227,6 +245,8 @@ void Company::MakeChange()
 	removeEmployee(depName, *temp);
 	m_undoStack.push([this,depName,temp]
 			 (){addEmployee(depName, *temp);});
+	m_redoStack.push([this,depName,temp]
+			 (){removeEmployee(depName, *temp);});
       }
       else
 	std::cout << "Cannot remove this emp ";
@@ -235,7 +255,43 @@ void Company::MakeChange()
     break;
     
   case 6:
-    //TODO
+    {//changeEmployee
+      std::string depName, fio, newFio,newFunction;
+      std::string preName,preMidName,preFam;
+      std::string toName,toMidName,toFam;
+      unsigned int newSalary;
+      std::cout << "choose dep: ";
+      std::cin >> depName;
+      std::cout << "fill emp info: "
+		<<"FIO \n";
+      std::cin >> preFam >> preName >> preMidName;
+      fio = preFam + " " + preName + " " + preMidName;
+      std::cout <<"fill new emp info: "
+		<<"FIO function salary \n";
+      std::cin >> toFam >> toName >> toMidName >> newFunction >> newSalary;
+
+      newFio = toFam + " " + toName + " " + toMidName;
+      std::shared_ptr<Employee> newEmp(new Employee);
+      newEmp->name = newFio;
+      newEmp->function = newFunction;
+      newEmp->salary = newSalary;
+      
+      auto dep = findDepartment(depName);
+      auto empList = dep->getEmpList();
+      auto temp = std::find_if(std::begin(empList),std::end(empList),
+			       [&fio] (EmployeeSP mp)
+			       {return fio == mp->name;});
+      if(temp != empList.end()){
+	changeEmployee(depName, *temp, newEmp);
+	m_undoStack.push([this,depName,temp,newEmp]
+			 (){changeEmployee(depName, newEmp, *temp);});
+	m_redoStack.push([this,depName,temp,newEmp]
+			 (){changeEmployee(depName, *temp, newEmp);});
+		
+      }else
+	std::cout << "Cannot remove this emp ";
+      std::cout <<'\n';
+    }
     break;
     
   default:
@@ -245,16 +301,27 @@ void Company::MakeChange()
 
 void Company::Undo()
 {
-  std::cout <<"here\n";
-  if(m_undoStack.empty()) return;
-  std::cout <<"here\n";
+  if(m_undoStack.empty()) return; 
   auto func = m_undoStack.top();
   func();
   m_undoStack.pop();
-  std::cout <<"here\n";
+  m_redoFlag = true;
+  std::cout <<"make Undo\n";
 }
 
 void Company::Redo()
 {
-  //TODO
+  if(!m_redoFlag){
+    std::cout <<"Cannot make redo\n";
+    return;
+  }
+  else{
+    if(m_redoStack.empty()) return;
+    auto func = m_redoStack.top();
+    func();
+    m_redoStack.pop();
+    std::cout << "make Redo\n";
+    m_redoFlag = false;
+  }
+  
 }
