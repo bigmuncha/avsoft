@@ -22,7 +22,7 @@ public:
   unsigned int getEmployeesCount();
   bool addEmployee(EmployeeSP);
   bool removeEmployee(EmployeeSP);
-
+  bool changeEmployee(EmployeeSP,EmployeeSP);
   void changeDepartmentName(std::string name)
   {m_name = name;}
   
@@ -40,6 +40,7 @@ private:
   void countAverageSalary();
   bool tryAddEmployee( EmployeeSP,std::function<void()>handler);
   bool tryRemoveEmployee( EmployeeSP,std::function<void()>handler);
+  bool tryChangeEmployee(EmployeeSP, EmployeeSP, std::function<void()>handler);
   std::set<EmployeeSP> m_employees;
   std::string m_name;
   unsigned int m_average_salary;

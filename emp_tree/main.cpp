@@ -5,8 +5,11 @@ int main()
 {
   Company empTreeFromXml;
   EmpTree &tree = empTreeFromXml;
-
-  tree.GetDataFromSrc("test.xml");
+  std::string filename;
+  std::cout << "insert file name: ";
+  std::cin >> filename;
+ 
+  tree.GetDataFromSrc(filename);
   
   int M;
   while(true){

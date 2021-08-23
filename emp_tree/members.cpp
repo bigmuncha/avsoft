@@ -1,3 +1,4 @@
+
 #include "members.h"
 #include <numeric>
 #include <iomanip>
@@ -44,6 +45,22 @@ bool DepartmentBase::removeEmployee(EmployeeSP emp)
   tryRemoveEmployee(emp, [this](void){countAverageSalary();});
   return true;
 }
+
+bool DepartmentBase::changeEmployee(EmployeeSP pre, EmployeeSP to)
+{
+  tryChangeEmployee(pre,to, [this](void){countAverageSalary();});
+  return true;
+}
+
+
+bool DepartmentBase::tryChangeEmployee(EmployeeSP pre,EmployeeSP to,std::function<void()>handler)
+{
+  m_employees.erase(pre);
+  m_employees.insert(to);
+  handler();
+  return true;
+}
+
 
 bool DepartmentBase::tryAddEmployee(EmployeeSP emp,std::function<void()>handler)
 {
